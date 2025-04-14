@@ -28,7 +28,8 @@ struct prefetcher *null_prefetcher_new()
 // TODO feel free to create additional structs/enums as necessary
 
 // Structure to store sequential prefetcher data
-struct sequential_data {
+struct sequential_data
+{
     uint32_t prefetch_amount;
 };
 
@@ -39,26 +40,29 @@ uint32_t sequential_handle_mem_access(struct prefetcher *prefetcher,
     // Cast the data pointer to the sequential_data struct
     struct sequential_data *data = (struct sequential_data *)prefetcher->data;
     uint32_t prefetch_amount = data->prefetch_amount;
-    
+
     // If prefetch_amount is 0, don't prefetch anything
-    if (prefetch_amount == 0) {
+    if (prefetch_amount == 0)
+    {
         return 0;
     }
-    
+
     // Calculate the next sequential addresses to prefetch
     uint32_t line_size = cache_system->line_size;
     uint32_t lines_prefetched = 0;
 
-    for (uint32_t i = 1; i <= prefetch_amount; i++) {
+    for (uint32_t i = 1; i <= prefetch_amount; i++)
+    {
         // Calculate the next sequential address (current address + i * line_size)
         uint32_t next_address = address + (i * line_size);
-        
+
         // Perform the prefetch by calling cache_system_mem_access with is_prefetch=true
-        if (cache_system_mem_access(cache_system, next_address, 'R', true) == 0) {
+        if (cache_system_mem_access(cache_system, next_address, 'R', true) == 0)
+        {
             lines_prefetched++;
         }
     }
-    
+
     return lines_prefetched;
 }
 
@@ -88,16 +92,24 @@ uint32_t adjacent_handle_mem_access(struct prefetcher *prefetcher,
                                     struct cache_system *cache_system, uint32_t address,
                                     bool is_miss)
 {
-    // TODO perform the necessary prefetches for the adjacent strategy.
+    // Get the cache line size to calculate the next address
+    uint32_t line_size = cache_system->line_size;
+    uint32_t lines_prefetched = 0;
 
-    // TODO: Return the number of lines that were prefetched.
-    return 0;
+    // Prefetch the line after the current one (the adjacent line)
+    uint32_t next_address = address + line_size;
+    if (cache_system_mem_access(cache_system, next_address, 'R', true) == 0)
+    {
+        lines_prefetched++;
+    }
+
+    return lines_prefetched;
 }
 
 void adjacent_cleanup(struct prefetcher *prefetcher)
 {
-    // TODO cleanup any additional memory that you allocated in the
-    // adjacent_prefetcher_new function.
+    // No additional memory was allocated in adjacent_prefetcher_new,
+    // so no cleanup is needed
 }
 
 struct prefetcher *adjacent_prefetcher_new()
@@ -106,8 +118,8 @@ struct prefetcher *adjacent_prefetcher_new()
     adjacent_prefetcher->handle_mem_access = &adjacent_handle_mem_access;
     adjacent_prefetcher->cleanup = &adjacent_cleanup;
 
-    // TODO allocate any additional memory needed to store metadata here and
-    // assign to adjacent_prefetcher->data.
+    // The adjacent prefetcher doesn't need any additional data
+    // since it simply prefetches the next adjacent line on every access
 
     return adjacent_prefetcher;
 }
