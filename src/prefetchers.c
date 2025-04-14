@@ -27,18 +27,45 @@ struct prefetcher *null_prefetcher_new()
 // ============================================================================
 // TODO feel free to create additional structs/enums as necessary
 
+// Structure to store sequential prefetcher data
+struct sequential_data {
+    uint32_t prefetch_amount;
+};
+
 uint32_t sequential_handle_mem_access(struct prefetcher *prefetcher,
                                       struct cache_system *cache_system, uint32_t address,
                                       bool is_miss)
 {
-    // TODO: Return the number of lines that were prefetched.
-    return 0;
+    // Cast the data pointer to the sequential_data struct
+    struct sequential_data *data = (struct sequential_data *)prefetcher->data;
+    uint32_t prefetch_amount = data->prefetch_amount;
+    
+    // If prefetch_amount is 0, don't prefetch anything
+    if (prefetch_amount == 0) {
+        return 0;
+    }
+    
+    // Calculate the next sequential addresses to prefetch
+    uint32_t line_size = cache_system->line_size;
+    uint32_t lines_prefetched = 0;
+
+    for (uint32_t i = 1; i <= prefetch_amount; i++) {
+        // Calculate the next sequential address (current address + i * line_size)
+        uint32_t next_address = address + (i * line_size);
+        
+        // Perform the prefetch by calling cache_system_mem_access with is_prefetch=true
+        if (cache_system_mem_access(cache_system, next_address, 'R', true) == 0) {
+            lines_prefetched++;
+        }
+    }
+    
+    return lines_prefetched;
 }
 
 void sequential_cleanup(struct prefetcher *prefetcher)
 {
-    // TODO cleanup any additional memory that you allocated in the
-    // sequential_prefetcher_new function.
+    // Free the sequential_data struct that was allocated in sequential_prefetcher_new
+    free(prefetcher->data);
 }
 
 struct prefetcher *sequential_prefetcher_new(uint32_t prefetch_amount)
@@ -47,8 +74,10 @@ struct prefetcher *sequential_prefetcher_new(uint32_t prefetch_amount)
     sequential_prefetcher->handle_mem_access = &sequential_handle_mem_access;
     sequential_prefetcher->cleanup = &sequential_cleanup;
 
-    // TODO allocate any additional memory needed to store metadata here and
-    // assign to sequential_prefetcher->data.
+    // Allocate and initialize data for the sequential prefetcher
+    struct sequential_data *data = calloc(1, sizeof(struct sequential_data));
+    data->prefetch_amount = prefetch_amount;
+    sequential_prefetcher->data = data;
 
     return sequential_prefetcher;
 }
